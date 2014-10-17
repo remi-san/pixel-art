@@ -1,0 +1,43 @@
+<html>
+	<head>
+		<title>Pixel art</title>
+		
+		<link href="assets/bootstrap-3.2.0-dist/css/bootstrap.min.css" rel="stylesheet" />
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+				border-spacing: 0;
+				border-collapse: collapse;
+			}
+			.board {
+				width: 640px;
+				background: white;
+			}
+			.board td {
+				width: 10px;
+				height: 10px;
+				border: 1px solid lightgray;
+				cursor: pointer;
+			}
+			.toolbar{
+				text-align: center;
+			}
+			.toolset {
+				display: inline-block;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="bibi"></div>
+		<script src="assets/jquery-2.1.1.min.js"></script>
+		<script src="assets/jscolor/jscolor.js"></script>
+		<script src="javascript/board.js"></script>
+		<script>
+			$(document).ready(function() {
+			 	var board = new Board('#bibi', 64);
+				board.init();
+			});
+		</script>
+	</body>
+</html>
