@@ -35,8 +35,7 @@
 		<script src="javascript/board.js"></script>
 		<script>
 			$(document).ready(function() {
-			 	var board = new Board('#bibi', 64);
-				board.init();
+			 	var board = new Board('#bibi', { width: 64, height: 64 });
 			});
 		</script>
 	</body>

@@ -1,10 +1,12 @@
-var Board = function (id, size) {
-	this.tool      = 'pencil';
-	this.color     = '000000';
-	this.size	   = size;
-	this.id 	   = id;
+var Board = function (id, pic) {
 
-	this.bitMap    = {};
+	this.id 	 = id;
+
+	this.tool    = 'pencil';
+	this.color   = '000000';
+	this.picture = null;
+
+	this.init(pic);
 }
 
 Board.prototype.mouseDown = false;
@@ -15,24 +17,24 @@ Board.prototype.draw = function(element) {
 
 	var lineNumber = element.parent().attr('pixel-line');
 	var colNumber  = element.attr('pixel-col');
-	if (!this.bitMap[lineNumber]) {
-		this.bitMap[lineNumber] = {};
+	if (!this.picture.bitMap[lineNumber]) {
+		this.picture.bitMap[lineNumber] = {};
 	}
 
 	if (curColor) {
-		this.bitMap[lineNumber][colNumber] = curColor;
+		this.picture.bitMap[lineNumber][colNumber] = curColor;
 	} else {
-		delete this.bitMap[lineNumber][colNumber];
+		delete this.picture.bitMap[lineNumber][colNumber];
 	}
 	
 };
 
 Board.prototype.save = function() {
-	var jsonText = JSON.stringify(this.bitMap);
+	var jsonText = JSON.stringify(this.picture);
 
 	var dd = document.createElement('a');
 	dd.setAttribute('href', 'data:application/octet-stream;charset=utf-8,' + escape(jsonText));
-	dd.setAttribute('download', 'pixelart.json');
+	dd.setAttribute('download', this.picture.name+'.pix');
 	dd.click();
 }
 
@@ -47,10 +49,22 @@ Board.prototype.load = function(file) {
     reader.readAsText(file);
 }
 
-Board.prototype.buildBoard = function(picture) {
+Board.prototype.initPicture = function(pic) {
+	var picture = pic || {};
 
-	var self    = this;
-	self.bitMap = picture || {};
+	this.picture = {};
+	this.picture.width  = picture.width  || 64;
+	this.picture.height = picture.height || this.picture.width;
+	this.picture.name   = picture.name   || 'untitled';
+	this.picture.bitMap = picture.bitMap || {};
+
+	return this.picture;
+}
+
+Board.prototype.buildBoard = function(pic) {
+
+	var self     = this;
+	this.picture = this.initPicture(pic);
 
 	var div   = $(self.id);
 	var table = $(document.createElement('table'));
@@ -64,13 +78,17 @@ Board.prototype.buildBoard = function(picture) {
 		board = $(document.createElement('div')).addClass('board');
 		div.append(board);
 	}
+
+	// Build the config bar
+	div.width('640px');
+
 	
 	// Build the table
-	for(var i=0; i<self.size; i++) {
-		var row = self.bitMap[i+''] || {};
+	for(var i=0; i<self.picture.height; i++) {
+		var row = self.picture.bitMap[i+''] || {};
 		var tr = $(document.createElement('tr'));
 		tr.attr('pixel-line', i);
-		for (var j=0; j<self.size; j++) {
+		for (var j=0; j<self.picture.width; j++) {
 			var colColor = row[j+''] || 'transparent';
 			var td = $(document.createElement('td'));
 			td.css('background-color', colColor);
@@ -143,16 +161,9 @@ Board.prototype.buildToolBar = function() {
 	});
 }
 
-Board.prototype.init = function() {
-
-	var self = this;
-	var div = $(self.id);
-
-	div.empty();
-	div.width('640px');
-	div.css('margin', 'auto');
-
-	this.buildBoard();
+Board.prototype.init = function(pic) {
+	$(self.id).empty();
+	this.buildBoard(pic);
 	this.buildToolBar();
 }
 
