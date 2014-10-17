@@ -1,6 +1,7 @@
-var Board = function (id, pic) {
+var Board = function (id, pic, displayWidth) {
 
-	this.id 	 = id;
+	this.id 	      = id;
+	this.displayWidth = displayWidth || 640; 
 
 	this.tool    = 'pencil';
 	this.color   = '000000';
@@ -66,6 +67,23 @@ Board.prototype.buildBoard = function(pic) {
 	var self     = this;
 	this.picture = this.initPicture(pic);
 
+	var maxSize = Math.max(this.picture.width, this.picture.height);
+	var pixelWidth = 10;
+	switch (maxSize) {
+		case 16:
+			pixelWidth = 40;
+			break;
+		case 32:
+			pixelWidth = 20;
+			break;
+		case 64:
+			pixelWidth = 10;
+			break;
+		case 96:
+			pixelWidth = 7;
+			break;
+	}
+
 	var div   = $(self.id);
 	var table = $(document.createElement('table'));
 	var tbody = $(document.createElement('tbody'));
@@ -80,7 +98,36 @@ Board.prototype.buildBoard = function(pic) {
 	}
 
 	// Build the config bar
-	div.width('640px');
+	var buildOption = function (name, value) {
+		var selectedValue = value || 64;
+		var select = $('<select class="'+name+'"></select>');
+		[16, 32, 64, 96].forEach(function(val){
+			var option = $('<option value="'+val+'">'+val+'</option>');
+			if (val == selectedValue) {
+				option.attr('selected', 'selected');
+			}
+			select.append(option);
+		});
+		return select;
+	};
+	
+	var optionBar = $('<div class="optionbar"></div>');
+	optionBar.append($('<input type="text" class="picture-name" value="'+this.picture.name+'" />'));
+	optionBar.append(buildOption('picture-width', this.picture.width));
+	optionBar.append(buildOption('picture-height', this.picture.height));
+	optionBar.append($('<button class="picture-size-btn">OK</option>'));
+	board.append(optionBar);
+
+	// Watch the option events
+	board.find('.picture-name').change(function(){
+		self.picture.name = $(this).val();
+	});
+
+	board.find('.picture-size-btn').click(function(){
+		self.picture.width = $('.picture-width').val();
+		self.picture.height = $('.picture-height').val();
+		self.buildBoard(self.picture);
+	});
 
 	
 	// Build the table
@@ -100,6 +147,9 @@ Board.prototype.buildBoard = function(pic) {
 	table.append(tbody);
 	board.append(table);
 
+	table.find('td').css('width', pixelWidth+'px').css('height', pixelWidth+'px');
+	div.width(this.picture.width*pixelWidth+'px');
+
 	// Watch the drawing event
 	board.find('td').mouseover(function(){
 		if (Board.prototype.mouseDown) {
@@ -114,7 +164,7 @@ Board.prototype.buildToolBar = function() {
 	var self = this;
 
 	var div   = $(self.id);
-	div.append($(''+
+	div.append($(
 		'<div class="toolbar">'+
 		'	<div class="toolset toolset-draw">'+
 		'		<button class="tool tool-draw tool-draw-pencil btn glyphicon glyphicon-pencil" pixel-tool="pencil"></button>'+
@@ -129,13 +179,15 @@ Board.prototype.buildToolBar = function() {
 		'		<button class="tool tool-util btn glyphicon glyphicon-open" pixel-util="load"></button>'+
 		'		<input type="file" class="tool-util-import" style="display:none;"></button>'+
 		'	</div>'+
-		'</div>')); // TODO refacto this
+		'</div>'
+	)); // TODO refacto this
 
 	div.find('.tool-draw').click(function() {
 		self.tool = $(this).attr('pixel-tool');
 
 		if (self.tool == 'erase-all') {
-			self.buildBoard();
+			self.picture.bitMap = {};
+			self.buildBoard(self.picture);
 			self.tool = 'pencil';
 		}
 	});
