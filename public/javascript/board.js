@@ -12,6 +12,13 @@ var Board = function (id, pic, displayWidth) {
 
 Board.prototype.mouseDown = false;
 
+Board.prototype.getColor = function(x, y) {
+	if (this.picture.bitMap[y]) {
+		return this.picture.bitMap[y][x];
+	}
+	return null;
+}
+
 Board.prototype.draw = function(element) {
 	var curColor = (this.tool == 'pencil') ? this.color : null;
 	element.css('background-color', ((curColor) ? curColor : 'transparent'));
@@ -100,7 +107,7 @@ Board.prototype.buildBoard = function(pic) {
 	// Build the config bar
 	var buildOption = function (name, value) {
 		var selectedValue = value || 64;
-		var select = $('<select class="'+name+'"></select>');
+		var select = $('<select class="'+name+' size-select form-control"></select>');
 		[16, 32, 64, 96].forEach(function(val){
 			var option = $('<option value="'+val+'">'+val+'</option>');
 			if (val == selectedValue) {
@@ -112,10 +119,10 @@ Board.prototype.buildBoard = function(pic) {
 	};
 	
 	var optionBar = $('<div class="optionbar"></div>');
-	optionBar.append($('<input type="text" class="picture-name" value="'+this.picture.name+'" />'));
+	optionBar.append($('<input type="text" class="picture-name form-control" value="'+this.picture.name+'" />'));
 	optionBar.append(buildOption('picture-width', this.picture.width));
 	optionBar.append(buildOption('picture-height', this.picture.height));
-	optionBar.append($('<button class="picture-size-btn">OK</option>'));
+	optionBar.append($('<button class="picture-size-btn btn">OK</option>'));
 	board.append(optionBar);
 
 	// Watch the option events
@@ -150,13 +157,28 @@ Board.prototype.buildBoard = function(pic) {
 	table.find('td').css('width', pixelWidth+'px').css('height', pixelWidth+'px');
 	div.width(this.picture.width*pixelWidth+'px');
 
+	var toolAction = function(element) {
+		switch (self.tool) {
+			case 'pipette':
+				var divColor = self.getColor(element.attr('pixel-col'), element.parent().attr('pixel-line'));
+				if (divColor) {
+					self.color = divColor;
+					div.find('.tool-color')[0].color.fromString(divColor);
+				}
+				break;
+			default:
+				self.draw(element);
+				break;
+		}
+	}
+
 	// Watch the drawing event
 	board.find('td').mouseover(function(){
 		if (Board.prototype.mouseDown) {
-			self.draw($(this));
+			toolAction($(this));
 		}
-	}).mousedown(function() {
-		self.draw($(this));
+	}).mousedown(function(){
+		toolAction($(this));
 	});
 }
 
@@ -167,9 +189,9 @@ Board.prototype.buildToolBar = function() {
 	div.append($(
 		'<div class="toolbar">'+
 		'	<div class="toolset toolset-draw">'+
-		'		<button class="tool tool-draw tool-draw-pencil btn glyphicon glyphicon-pencil" pixel-tool="pencil"></button>'+
+		'		<button class="tool tool-draw tool-draw-pencil btn glyphicon glyphicon-pencil active" pixel-tool="pencil"></button>'+
 		'		<button class="tool tool-draw tool-draw-rubber btn glyphicon glyphicon-remove" pixel-tool="rubber"></button>'+
-		'		<button class="tool tool-draw tool-draw-rubber btn glyphicon glyphicon-trash" pixel-tool="erase-all"></button>'+
+		'		<button class="tool tool-draw tool-draw-pipette btn glyphicon glyphicon-tint" pixel-tool="pipette"></button>'+
 		'	</div>'+
 		'	<div class="toolset toolset-colors">'+
 		'		<input class="tool tool-color btn color {hash:true,caps:false}" value="'+self.color+'"/>'+
@@ -178,18 +200,17 @@ Board.prototype.buildToolBar = function() {
 		'		<button class="tool tool-util btn glyphicon glyphicon-save" pixel-util="save"></button>'+
 		'		<button class="tool tool-util btn glyphicon glyphicon-open" pixel-util="load"></button>'+
 		'		<input type="file" class="tool-util-import" style="display:none;"></button>'+
+		'		<button class="tool tool-util btn glyphicon glyphicon-trash" pixel-util="erase-all"></button>'+
 		'	</div>'+
 		'</div>'
 	)); // TODO refacto this
 
 	div.find('.tool-draw').click(function() {
-		self.tool = $(this).attr('pixel-tool');
+		
+		div.find('.tool-draw').removeClass('active');
+		$(this).addClass('active');
 
-		if (self.tool == 'erase-all') {
-			self.picture.bitMap = {};
-			self.buildBoard(self.picture);
-			self.tool = 'pencil';
-		}
+		self.tool = $(this).attr('pixel-tool');
 	});
 
 	div.find('.tool-color').change(function(color) {
@@ -204,12 +225,19 @@ Board.prototype.buildToolBar = function() {
 			case 'load' :
 				div.find('.tool-util-import').click();
 				break;
+			case 'erase-all' :
+				self.picture.bitMap = {};
+				self.buildBoard(self.picture);
+				break;
 		}
 	});
 
 	div.find('.tool-util-import').change(function(){
-		var file = $(this)[0].files[0];
-		self.load(file);
+		if ($(this).val()) {
+			var file = $(this)[0].files[0];
+			self.load(file);
+			$(this).val('');
+		}
 	});
 }
 
